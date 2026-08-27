@@ -1,8 +1,5 @@
 .env
 
-# The database can be rebuilt with "python ingest.py"
-faiss_db/
-
 # Python
 __pycache__/
 *.pyc
