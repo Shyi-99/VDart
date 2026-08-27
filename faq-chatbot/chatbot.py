@@ -16,7 +16,7 @@ gemini_api_key = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent"
 
-DB_FOLDER = "faiss_db"
+DB_FOLDER = ingest.DB_FOLDER
 
 TOP_K = 3
 

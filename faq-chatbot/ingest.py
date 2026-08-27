@@ -2,8 +2,9 @@ from langchain_community.vectorstores import FAISS
 from embeddings import embeddings
 import os
 
-FAQ_FILE = "faq_data.md"
-DB_FOLDER = "faiss_db"
+FOLDER = os.path.dirname(os.path.abspath(__file__))
+FAQ_FILE = os.path.join(FOLDER, "faq_data.md")
+DB_FOLDER = os.path.join(FOLDER, "faiss_db")
 
 
 def clean_question(line):
