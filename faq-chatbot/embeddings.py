@@ -1,16 +1,3 @@
-# Turns text into vectors (lists of numbers) using the Gemini embedding API.
-#
-# Why Gemini instead of a downloaded model:
-#   1. Our FAQ is in Malay. The popular small models like all-MiniLM-L6-v2 are
-#      trained on English only, so they match Malay questions badly.
-#      gemini-embedding-001 supports over 100 languages, Malay included.
-#   2. Nothing to download. No torch, no sentence-transformers. That keeps
-#      installing simple and keeps the deployed app small enough to run on a
-#      free Streamlit Cloud server.
-#
-# Cost is tiny: 7 calls once when building the database, then 1 call per
-# question a user asks.
-
 from langchain_core.embeddings import Embeddings
 from dotenv import load_dotenv
 import requests
@@ -23,8 +10,6 @@ load_dotenv()
 EMBED_MODEL = "gemini-embedding-001"
 EMBED_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + EMBED_MODEL + ":embedContent"
 
-# The full model gives 3072 numbers per text. We ask for 768 instead - just as
-# accurate for a small FAQ, and it keeps the database file small.
 EMBED_SIZE = 768
 
 
@@ -57,8 +42,6 @@ def embed_one(text, task_type):
 
     headers = {
         "Content-Type": "application/json",
-        # The key goes in a header, not in the web address, so it does not
-        # end up in server logs.
         "x-goog-api-key": api_key,
     }
 
@@ -99,8 +82,4 @@ class GeminiEmbeddings(Embeddings):
         """Vector for a question the user just typed."""
         return embed_one(text, "RETRIEVAL_QUERY")
 
-
-# One shared instance, used by both ingest.py and chatbot.py.
-# They MUST use the same one - a database built with one model cannot be
-# searched with another.
 embeddings = GeminiEmbeddings()

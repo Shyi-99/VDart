@@ -1,4 +1,3 @@
-# Never upload the API key
 .env
 
 # The database can be rebuilt with "python ingest.py"

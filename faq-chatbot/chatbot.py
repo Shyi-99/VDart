@@ -7,8 +7,6 @@ import requests
 import json
 import os
 
-# Same embedding model that built the database. A database built with one
-# model cannot be searched with another - the results would be nonsense.
 from embeddings import embeddings
 import ingest
 
@@ -20,23 +18,11 @@ GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI
 
 DB_FOLDER = "faiss_db"
 
-# How many FAQ entries to send to Gemini.
-# Our FAQ only has 7 entries, so 3 is already a big slice of it. Sending more
-# would just fill the prompt with entries that have nothing to do with the
-# question, which makes the answer worse, not better.
 TOP_K = 3
 
-# FAISS gives a distance score: SMALLER means MORE similar.
-# If the closest FAQ is further away than this, we treat the question
-# as "not in the FAQ" instead of letting Gemini make something up.
-#
-# IMPORTANT: run "python check_threshold.py" and use the number it suggests.
-# This default is a starting guess, not a measured value.
-MAX_DISTANCE = 1.0
+MAX_DISTANCE = 0.72
 
-# Gemini replies with this exact word when the FAQ does not cover the question.
-# We look for it and swap in a friendly message. Using a plain marker instead
-# of a sentence makes it reliable to detect, whatever language the user typed.
+
 NOT_FOUND_MARKER = "NOT_IN_FAQ"
 
 NOT_FOUND_REPLY = (
@@ -45,8 +31,6 @@ NOT_FOUND_REPLY = (
     "_(Sorry, that is not covered in our FAQ.)_"
 )
 
-# Words we do not want to answer. Kept short on purpose, because blocking
-# too much would also block real customer questions.
 BLOCKED_WORDS = [
     "ignore all previous",
     "ignore previous instructions",
@@ -72,7 +56,7 @@ BLOCKED_REPLY = (
     "_(Sorry, I can only answer questions about the Tonton FAQ.)_"
 )
 
-# The instructions we give Gemini every time
+
 SYSTEM_PROMPT = """You are a customer support assistant for Tonton, a Malaysian
 streaming service.
 
@@ -102,7 +86,6 @@ def load_database():
         print("Database not found, building it now...")
         ingest.build_database()
 
-    # If it still is not there, the FAQ file is missing or empty
     if not os.path.exists(DB_FOLDER):
         raise Exception(
             "Could not build the database. Check that " + ingest.FAQ_FILE +
@@ -116,7 +99,6 @@ def load_database():
     )
 
 
-# Load it once when this file is imported, so we don't reload it every question
 db = load_database()
 
 
@@ -159,8 +141,6 @@ def ask_gemini(prompt):
     """Send the prompt to Gemini and return the answer text."""
     headers = {
         "Content-Type": "application/json",
-        # The key goes in the header, not in the web address,
-        # so it does not end up in server logs.
         "x-goog-api-key": gemini_api_key,
     }
 
@@ -171,12 +151,8 @@ def ask_gemini(prompt):
             }
         ],
         "generationConfig": {
-            # Low temperature so it sticks to the FAQ instead of being creative
             "temperature": 0.2,
             "maxOutputTokens": 1024,
-            # Gemini 2.5 "thinks" before answering by default. We turn that off:
-            # it is slower, and the thinking can use up all the output space
-            # and leave us with an empty answer.
             "thinkingConfig": {"thinkingBudget": 0},
         },
     }
@@ -192,12 +168,9 @@ def ask_gemini(prompt):
 
     result = response.json()
 
-    # If Gemini blocked the question, there are no candidates
     if "candidates" not in result or len(result["candidates"]) == 0:
         return "Maaf, saya tidak dapat menjawab soalan itu. (I cannot answer that one.)"
-
-    # Join the text pieces. We skip pieces marked as "thought",
-    # which are Gemini's own notes and not the real answer.
+    
     parts = result["candidates"][0]["content"]["parts"]
     answer = ""
     for part in parts:
@@ -230,16 +203,15 @@ def get_answer(question):
         return {"answer": NOT_FOUND_REPLY, "sources": []}
 
     # Step 3: if nothing is close enough, say so instead of guessing.
-    # This also saves quota, because we never call Gemini.
     best_distance = faq_results[0][1]
     if best_distance > MAX_DISTANCE:
         return {"answer": NOT_FOUND_REPLY, "sources": []}
 
-    # Step 4: ask Gemini, using only the FAQ entries we found
+    # Step 4: ask Gemini, using only the FAQ entries found
     prompt = build_prompt(question, faq_results)
     answer = ask_gemini(prompt)
 
-    # Step 5: if Gemini said the FAQ does not cover it, show our own message
+    # Step 5: if Gemini said the FAQ does not cover it, show own message
     if NOT_FOUND_MARKER in answer:
         return {"answer": NOT_FOUND_REPLY, "sources": []}
 

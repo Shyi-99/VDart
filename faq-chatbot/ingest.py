@@ -1,9 +1,3 @@
-# Reads the FAQ file, splits it into question/answer pairs,
-# turns them into vectors and saves them to a local FAISS database.
-#
-# Run this once before starting the chatbot:
-#     python ingest.py
-
 from langchain_community.vectorstores import FAISS
 from embeddings import embeddings
 import os
@@ -39,19 +33,14 @@ def load_faq(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         text = f.read()
 
-    # Split on "## " only when it is at the start of a line, so a "## " that
-    # happens to appear inside an answer is not mistaken for a question.
-    # The extra "\n" at the front makes the first question split correctly too.
     blocks = ("\n" + text).split("\n## ")
 
     faqs = []
-    # blocks[0] is the file title / any notes before the first question, so skip it
     for block in blocks[1:]:
         block = block.strip()
         if not block:
             continue
 
-        # First line is the question, the rest is the answer.
         parts = block.split("\n", 1)
         if len(parts) < 2:
             continue

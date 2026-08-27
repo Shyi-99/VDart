@@ -1,14 +1,7 @@
 # Automated tests.
 #
-# These check that the chatbot finds the RIGHT FAQ entry for a question,
-# which is the bonus point the assessment asks for.
-#
 # Run with:
 #     pytest test_chatbot.py -v
-#
-# You need a working .env and 'python ingest.py' run once, because the search
-# tests call the Gemini embedding API. The tests that do not need the network
-# (file reading, guardrails, prompt building) run either way.
 
 import pytest
 import chatbot
@@ -55,11 +48,6 @@ def test_full_answers_are_kept():
 # ---------------------------------------------------------------
 # 2. Does the chatbot find the correct FAQ?
 # ---------------------------------------------------------------
-# Each line is: (what the user types, a word that must appear in the
-# correct FAQ entry). The questions are worded DIFFERENTLY from the FAQ
-# on purpose - otherwise we would only be testing word matching, not
-# real searching. A few are in English to check that a customer who asks
-# in English still finds the right Malay entry.
 
 SEARCH_TESTS = [
     # cancelling a subscription
@@ -107,7 +95,7 @@ def test_chatbot_finds_the_correct_faq():
         if expected_word.lower() not in found_text:
             wrong.append(question)
 
-    # Allow 1 miss out of 13, so a small change doesn't break the build
+    # Allow 1 miss out of 13
     assert len(wrong) <= 1, "Could not find the right FAQ for: " + str(wrong)
 
 
@@ -142,9 +130,6 @@ def test_english_questions_find_the_malay_faq():
 # ---------------------------------------------------------------
 # 3. Does it refuse questions the FAQ does not cover?
 # ---------------------------------------------------------------
-# This is important. The search always returns SOMETHING, even for
-# nonsense. Without the distance check the chatbot would happily invent
-# an answer from unrelated FAQ entries.
 
 OFF_TOPIC_QUESTIONS = [
     "apakah ibu negara perancis",

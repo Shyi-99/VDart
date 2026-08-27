@@ -1,12 +1,5 @@
 # Helper script to pick the right MAX_DISTANCE value in chatbot.py.
 #
-# MAX_DISTANCE decides when the chatbot says "I don't have that in the FAQ"
-# instead of answering. Set it too low and it refuses real customers.
-# Set it too high and it invents answers for questions the FAQ never covered.
-#
-# This script prints the actual distances so you can pick a good number
-# instead of guessing.
-#
 # Run with:
 #     python check_threshold.py
 
