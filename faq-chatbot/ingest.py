@@ -5,33 +5,42 @@
 #     python ingest.py
 
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from embeddings import embeddings
 import os
 
 FAQ_FILE = "faq_data.md"
 DB_FOLDER = "faiss_db"
 
-# The embedding model. Runs on your own computer, so it costs nothing
-# and does not use up the Gemini quota.
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    encode_kwargs={"normalize_embeddings": True},
-)
+
+def clean_question(line):
+    """Tidy up a question heading.
+
+    Our FAQ file writes headings as "## Question: Kenapa ...". The words
+    "Question:" are just a label, not part of the question, so we remove them.
+    Left in, every entry would start with the same word and that only makes
+    the entries look more alike to the search.
+    """
+    question = line.strip()
+    for prefix in ("Question:", "Soalan:", "Q:"):
+        if question.lower().startswith(prefix.lower()):
+            question = question[len(prefix):].strip()
+            break
+    return question
 
 
 def load_faq(file_path):
     """Split the FAQ file into a list of question + answer texts.
 
-    The file uses '## ' in front of every question, so we can just
-    split on that instead of cutting the text into fixed-size pieces.
-    Keeping each question with its own answer gives much better search
-    results, because the user's question looks like the FAQ question.
+    Every question in the file starts with '## ', so we split on that instead
+    of cutting the text into fixed-size pieces. Keeping each question together
+    with its own answer gives much better search results, because the user's
+    question looks like the FAQ question.
     """
     with open(file_path, "r", encoding="utf-8") as f:
         text = f.read()
 
-    # Split on "## " only when it is at the start of a line, so a "## "
-    # that happens to appear inside an answer is not mistaken for a question.
+    # Split on "## " only when it is at the start of a line, so a "## " that
+    # happens to appear inside an answer is not mistaken for a question.
     # The extra "\n" at the front makes the first question split correctly too.
     blocks = ("\n" + text).split("\n## ")
 
@@ -47,10 +56,10 @@ def load_faq(file_path):
         if len(parts) < 2:
             continue
 
-        question = parts[0].strip()
+        question = clean_question(parts[0])
         answer = parts[1].strip()
         if question and answer:
-            faqs.append("Question: " + question + "\nAnswer: " + answer)
+            faqs.append("Soalan: " + question + "\nJawapan: " + answer)
 
     return faqs
 
@@ -68,13 +77,13 @@ def build_database():
         print("No FAQ entries found. Check that every question starts with '## '")
         return
 
-    print("Creating vectors...")
+    print("Asking Gemini to turn them into vectors...")
     db = FAISS.from_texts(faqs, embedding=embeddings)
     db.save_local(DB_FOLDER)
 
     print("Saved database to the '" + DB_FOLDER + "' folder")
-    print("Now run:  streamlit run app.py")
 
 
 if __name__ == "__main__":
     build_database()
+    print("Now run:  streamlit run app.py")

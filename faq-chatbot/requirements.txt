@@ -1,9 +1,11 @@
 # These are the exact versions this project was built and tested with.
 # Install them with:  pip install -r requirements.txt
+#
+# Note there is no torch / sentence-transformers here. Embeddings come from
+# the Gemini API instead of a downloaded model, which keeps the install small
+# and handles Malay properly.
 
 langchain-community==0.4.2
-langchain-huggingface==1.2.2
-sentence-transformers==3.3.1
 faiss-cpu==1.15.0
 requests==2.33.1
 python-dotenv==1.2.2
